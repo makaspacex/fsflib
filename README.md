@@ -17,6 +17,7 @@ changing the orchestration layer.
 
 ## Controller architecture
 
+
 The controller is packaged under `pressure_control/` so multiple strategies and
 runtimes can evolve independently.
 
@@ -32,11 +33,13 @@ runtimes can evolve independently.
 `control_strategy.py` remains a tiny entrypoint that simply calls the CLI; it
 can be used directly or imported by other scripts to embed the engine.
 
+
 ### Built-in strategy: `rule_based`
 
 The default strategy follows the operating notes:
 
 - Evaluates every 5 seconds using a 30-second trend window.
+
 - Targets a pressure center of -80 and keeps the rolling center between -85 and
   -75.
 - Waits 20 seconds after each adjustment before issuing another command.
@@ -53,6 +56,7 @@ The default strategy follows the operating notes:
    return a `ControlDecision` or `None`).
 3. Call `register_strategy(NewStrategy)` at the bottom of the module. The CLI
    will automatically expose it via `--strategy` and `--list-strategies`.
+
 
 ## Usage
 
