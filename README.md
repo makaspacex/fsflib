@@ -17,24 +17,46 @@ changing the orchestration layer.
 
 ## Controller architecture
 
-`control_strategy.py` exposes a strategy interface that receives a normalized
-control context (windowed data, computed trend features, the current valve
-command, and the previous actions list) and returns the next delta to apply.
-The orchestration layer (`ControlEngine`) handles sampling cadence, cooldowns,
-and applying bounds. Strategies are registered in `STRATEGY_REGISTRY` and
-selected via CLI arguments.
+
+The controller is packaged under `pressure_control/` so multiple strategies and
+runtimes can evolve independently.
+
+- `config.py`: shared tunable parameters for all strategies.
+- `models.py`: dataclasses for actions, contexts, and strategy outputs.
+- `engine.py`: the orchestration core that manages cadence, cooldown, clamping,
+  and context construction.
+- `data.py`: helpers for loading datasets and formatting actions.
+- `strategies/`: pluggable strategy implementations. New strategies register
+  themselves via `register_strategy`.
+- `cli.py`: user-facing CLI helpers and the `run_controller` API.
+
+`control_strategy.py` remains a tiny entrypoint that simply calls the CLI; it
+can be used directly or imported by other scripts to embed the engine.
+
 
 ### Built-in strategy: `rule_based`
 
 The default strategy follows the operating notes:
 
 - Evaluates every 5 seconds using a 30-second trend window.
-- Targets a pressure center of -80 and keeps the rolling center between -85 and -75.
+
+- Targets a pressure center of -80 and keeps the rolling center between -85 and
+  -75.
 - Waits 20 seconds after each adjustment before issuing another command.
 - Avoids adjustments while the cover is open, except for emergency limits
   (pressure > -50 or < -150).
-- Adjustment steps are clamped between 0.2 and 1.0 units and respond to
-  both boundary violations and approaching-trend conditions.
+- Adjustment steps are clamped between 0.2 and 1.0 units and respond to both
+  boundary violations and approaching-trend conditions.
+
+## Extending strategies
+
+1. Create a new module under `pressure_control/strategies/` and subclass
+   `ControlStrategy`.
+2. Implement `build_features` (to compute windowed metrics) and `decide` (to
+   return a `ControlDecision` or `None`).
+3. Call `register_strategy(NewStrategy)` at the bottom of the module. The CLI
+   will automatically expose it via `--strategy` and `--list-strategies`.
+
 
 ## Usage
 
